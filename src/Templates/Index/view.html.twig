@@ -1,0 +1,179 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-12" id="alert-box">
+        </div>
+        <form class="col-md-12 text-right" style="margin-bottom: 0px;">
+            <button class="btn btn-primary" id="print" type="button" name="print">
+                Print
+                <div class="spinner-border" role="status" style="height: 20px; width: 20px">
+                    <span class="sr-only">Loading...</span>
+                </div>
+            </button>
+        </form>
+    </div>
+    {% for row in categories | batch(2) %}
+            <div class="row">
+                {% for category in row %}
+                    <form autocomplete="off" class="col-md-6 category" data-sync="1" data-id="{{ category.id }}" data-hash="{{ category.hash }}">
+                        <h4 style="display: inline-block">{{ category.name }}</h4>
+                        <div class="spinner-border" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <textarea name="shopping" class="form-control" rows="8">{{ category.shopping }}
+</textarea>
+                    </form>
+                {% endfor %}
+            </div>
+    {% endfor %}
+    <style>
+
+        #print .spinner-border {
+            display: none;
+        }
+
+        #print.printing .spinner-border {
+            display: inline-block;
+        }
+
+        .category .spinner-border {
+            display: none;
+            height: 20px;
+            width: 20px;
+        }
+
+        .category .alert {
+            display: none;
+        }
+
+        .category.disabled .alert {
+            display: inline-block;
+        }
+
+        .category[data-sync="1"] textarea {
+            border-color: #28a745;
+        }
+
+        .category[data-sync="0"] textarea {
+            border-color: #ffc107;
+        }
+
+        .category textarea {
+            border-width: 2px;
+        }
+
+        .category.updating .spinner-border {
+            display: inline-block;
+        }
+    </style>
+    <script>
+        function updateSyncStatus(form) {
+            let textArea = form.shopping;
+            let content = textArea.value.trim();
+            let hash = md5(content);
+            let sync = (hash === form.attributes['data-hash'].value);
+            form.setAttribute('data-sync', sync ? "1" : "0");
+        }
+
+        function update(form) {
+            let categoryId = form.attributes["data-id"].value;
+
+            (async () => {
+                form.classList.add("updating");
+                const rawResponse = await fetch('/category/' + categoryId, {
+                    method: 'PUT',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        expectedHash: form.attributes['data-hash'].value,
+                        content: form.shopping.value
+                    })
+                });
+
+                rawResponse.json().then(function(data){
+                    form.classList.remove("updating");
+                    if (data.error) {
+                        form.classList.add('disabled');
+                        form.shopping.disabled = true;
+                        addAlert(data.error);
+                        // form.querySelector(".alert-danger").innerHTML = data.error;
+                    } else {
+                        form.setAttribute("data-hash", data['hash']);
+                        updateSyncStatus(form);
+                    }
+                });
+            })();
+        }
+
+        let textAreas = document.getElementsByTagName("textarea");
+        for (let x=0; x<textAreas.length; x++) {
+            let textArea = textAreas[x];
+            textArea.onkeydown = function(e) {
+                if (e.key === "Enter") {
+                    update(textArea.form);
+                }
+            };
+
+            textArea.onblur = function(e) {
+                update(textArea.form);
+            }
+
+            textArea.onkeyup = function(e) {
+                if (e.key !== "Enter") {
+                    updateSyncStatus(textArea.form);
+                }
+            }
+        }
+
+        document.getElementById("print").onclick = function(e) {
+            if (window.confirm("Are you sure you want to print this shopping list?")) {
+                printShopping(this.form);
+            }
+        }
+
+        function addAlert(text, type, duration) {
+            type = type === undefined ? 'danger' : type;
+            duration = duration === undefined ? 10000 : duration;
+
+            let element = document.createElement("div");
+            element.classList.add('alert');
+            element.classList.add('alert-' + type);
+            element.innerText = text;
+
+            let parentElement = document.getElementById("alert-box");
+            parentElement.appendChild(element);
+
+            setTimeout(function(){
+                parentElement.removeChild(element);
+            }, duration);
+        }
+
+        function printShopping(form) {
+            form.print.disabled = true;
+            (async () => {
+                form.classList.add('printing');
+
+                const rawResponse = await fetch('/print', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                rawResponse.json().then(function(data){
+                    form.classList.remove("printing");
+                    form.print.disabled = false;
+                    if (data.error) {
+                        addAlert(data.error);
+                    } else {
+                        addAlert("Printed successfully!", "success");
+                    }
+                });
+            })();
+        }
+    </script>
+{% endblock %}
