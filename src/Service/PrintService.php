@@ -6,6 +6,7 @@ namespace Dochne\Shopping\Service;
 
 use Dochne\Shopping\Entity\Category;
 use Dochne\Shopping\Repository\CategoryRepository;
+use Mike42\Escpos\PrintConnectors\FilePrintConnector;
 use Mike42\Escpos\Printer;
 
 class PrintService
@@ -19,7 +20,8 @@ class PrintService
 
     public function print() : bool
     {
-        $connector = new RemotePrintConnector();
+        //$connector = new RemotePrintConnector();
+        $connector = new FilePrintConnector("/dev/usb/lp0");
         $printer = new Printer($connector);
 
         $categories = array_filter($this->categoryRepository->all(), function(Category $category) {

@@ -40,7 +40,7 @@ class UpdateAction extends AbstractAction
             );
         }
 
-        $category->shopping = $content;
+        $category->shopping = trim($content);
         $this->categoryRepository->save($category);
 
         return $this->json(

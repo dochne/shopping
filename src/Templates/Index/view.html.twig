@@ -68,16 +68,31 @@
         }
     </style>
     <script>
+        let updating = {};
+        let queue = {};
+
         function updateSyncStatus(form) {
             let textArea = form.shopping;
             let content = textArea.value.trim();
+            // There's some funky bug here with differences in how js and php handle multiple trimmed things
             let hash = md5(content);
+
             let sync = (hash === form.attributes['data-hash'].value);
             form.setAttribute('data-sync', sync ? "1" : "0");
         }
 
         function update(form) {
             let categoryId = form.attributes["data-id"].value;
+            let content = form.shopping.value.trim();
+            if (updating[categoryId]) {
+                queue[categoryId] = form;
+                return;
+            }
+
+            if (md5(content) === form.attributes['data-hash'].value) {
+                updateSyncStatus(form);
+            }
+            updating[categoryId] = true;
 
             (async () => {
                 form.classList.add("updating");
@@ -89,7 +104,7 @@
                     },
                     body: JSON.stringify({
                         expectedHash: form.attributes['data-hash'].value,
-                        content: form.shopping.value
+                        content: content
                     })
                 });
 
@@ -103,6 +118,13 @@
                     } else {
                         form.setAttribute("data-hash", data['hash']);
                         updateSyncStatus(form);
+                    }
+
+                    delete updating[categoryId];
+                    if (queue[categoryId]) {
+                        delete queue[categoryId];
+                        console.log("Retriggering update");
+                        update(form);
                     }
                 });
             })();
