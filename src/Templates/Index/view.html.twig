@@ -16,7 +16,7 @@
     {% for row in categories | batch(2) %}
             <div class="row">
                 {% for category in row %}
-                    <form autocomplete="off" class="col-md-6 category" data-sync="1" data-id="{{ category.id }}" data-hash="{{ category.hash }}">
+                    <form autocomplete="off" class="col-md-6 category" data-sync="1" data-id="{{ category.id }}" data-hash="{{ category.hash }}" style="padding-bottom: 20px;">
                         <h4 style="display: inline-block">{{ category.name }}</h4>
                         <div class="spinner-border" role="status">
                             <span class="sr-only">Loading...</span>
@@ -68,6 +68,20 @@
         }
     </style>
     <script>
+        let isInvisible = null;
+        document.addEventListener("visibilitychange", function(e) {
+            if (isInvisible !== null) {
+                if ((new Date()).getTime() - isInvisible > 10000) {
+                    window.location.reload();
+                }
+                isInvisible = null;
+            } else {
+                if (document.hidden) {
+                    isInvisible = (new Date()).getTime();
+                }
+            }
+        });
+
         let updating = {};
         let queue = {};
 
