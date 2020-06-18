@@ -64,8 +64,8 @@ class PrintService
 
     public function print() : bool
     {
-        $connector = new RemotePrintConnector();
-        //$connector = new FilePrintConnector("/dev/usb/lp0");
+        //$connector = new RemotePrintConnector();
+        $connector = new FilePrintConnector("/dev/usb/lp0");
         $printer = new Printer($connector);
 
         $categories = array_filter($this->categoryRepository->all(), function(Category $category) {
