@@ -79,6 +79,7 @@ class PrintService
         date_default_timezone_set("Europe/London");
 
         // Todo: possibly fingerprint devices so we know who printed it
+        $printer->cut();
         $printer->setJustification(Printer::JUSTIFY_RIGHT);
         $printer->setTextSize(1, 1);
         $printer->selectPrintMode(Printer::MODE_EMPHASIZED);
